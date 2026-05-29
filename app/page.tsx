@@ -1,6 +1,6 @@
 "use client";
 
-import ImageUploader from "@/components/ImageUploader";
+import ImageUploader from "../components/ImageUploader";
 
 export default function Home() {
   return (
