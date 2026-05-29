@@ -1,0 +1,26 @@
+# DeepShield Backend — Python Dependencies
+#
+# WHY EACH PACKAGE:
+#
+# fastapi           — The web framework. Handles routing, validation, docs.
+# uvicorn           — The server that actually runs FastAPI. Like Next.js's
+#                     dev server but for Python. `uvicorn main:app`
+# python-multipart  — Required for FastAPI to parse file uploads (multipart/form-data).
+#                     Without this, `UploadFile` won't work.
+# torch             — PyTorch, the deep learning library. Runs the model.
+# torchvision       — Adds image transforms + pretrained model utilities to torch.
+# timm              — "PyTorch Image Models" — huge library of pretrained vision models.
+#                     Lets us do `timm.create_model("efficientnet_b4", pretrained=True)`
+# Pillow            — PIL fork. Opens/converts images (JPEG, PNG, WEBP, etc).
+# huggingface_hub   — Downloads pretrained model weights from HuggingFace.
+# python-dotenv     — Loads .env files for config (API keys, settings).
+
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+torch>=2.2.0
+torchvision>=0.17.0
+timm>=1.0.3
+Pillow>=10.3.0
+huggingface_hub>=0.23.0
+python-dotenv==1.0.1
