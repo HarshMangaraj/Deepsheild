@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Syne, JetBrains_Mono } from "next/font/google";
-import "./globals.css";
+import "./global.css";
 
 // WHY SYNE? It's a geometric sans-serif with a technical, futuristic feel —
 // perfect for a security/AI tool. JetBrains Mono adds credibility for
