@@ -1,77 +1,100 @@
 "use client";
 
-// WHY "use client"?
-// Next.js renders pages on the SERVER by default (for performance/SEO).
-// But this component uses React hooks (useState, useCallback) and browser
-// APIs (FileReader, drag events) — things that only exist in the browser.
-// "use client" tells Next.js: "run this component in the browser, not server."
-
 import { useState, useCallback, useRef } from "react";
+import { detectDeepfake, DetectionResult } from "../lib/api";
+import ResultCard from "./ResultCard";
 
-// WHAT IS A TYPE/INTERFACE?
-// TypeScript lets us describe the shape of data. Here we're saying:
-// a SelectedFile always has a `file` (the raw File object from the browser)
-// and a `preview` (a base64 data URL string we can put in an <img> src).
 interface SelectedFile {
   file: File;
   preview: string;
 }
 
 export default function ImageUploader() {
-  // STATE — React's way of remembering things between renders.
-  // When state changes, React re-draws the component automatically.
-  const [selected, setSelected] = useState<SelectedFile | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [selected, setSelected]       = useState<SelectedFile | null>(null);
+  const [isDragging, setIsDragging]   = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [result, setResult]           = useState<DetectionResult | null>(null);
+  const [error, setError]             = useState<string | null>(null);
 
-  // A ref gives us a direct handle to a DOM element (the hidden file input).
-  // We use it so clicking our styled div triggers the native file picker.
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // processFile: takes a File, reads it as a data URL so we can preview it.
-  // FileReader is a built-in browser API — no library needed.
   const processFile = useCallback((file: File) => {
-    // Only accept images
     if (!file.type.startsWith("image/")) return;
-
+    setResult(null);
+    setError(null);
     const reader = new FileReader();
     reader.onload = (e) => {
-      setSelected({
-        file,
-        preview: e.target?.result as string,
-      });
+      setSelected({ file, preview: e.target?.result as string });
     };
-    reader.readAsDataURL(file); // converts image to base64 string
+    reader.readAsDataURL(file);
   }, []);
 
-  // Drag-and-drop handlers
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // prevent browser from opening the file
-    setIsDragging(true);
-  };
+  const onDragOver  = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const onDragLeave = () => setIsDragging(false);
-  const onDrop = (e: React.DragEvent) => {
+  const onDrop      = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) processFile(file);
   };
-
-  // Regular click-to-upload handler
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) processFile(file);
   };
 
-  // Simulate analyze (Phase 2 will replace this with a real API call)
-  const handleAnalyze = () => {
-    setIsAnalyzing(true);
-    setTimeout(() => setIsAnalyzing(false), 2000); // fake 2s "loading"
+  const handleReset = () => {
+    setSelected(null);
+    setResult(null);
+    setError(null);
+    if (inputRef.current) inputRef.current.value = "";
   };
+
+  // THE REAL ANALYZE FUNCTION — replaces the fake setTimeout from Phase 1
+  const handleAnalyze = async () => {
+    if (!selected) return;
+    setIsAnalyzing(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const detectionResult = await detectDeepfake(selected.file);
+      setResult(detectionResult);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong. Is the backend running on port 8000?");
+      }
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Once we have a result, show ResultCard instead of the uploader
+  if (result) {
+    return (
+      <div className="w-full max-w-xl mx-auto space-y-4">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/5">
+          <img
+            src={selected!.preview}
+            alt="Analyzed"
+            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-white/60 truncate">{selected!.file.name}</p>
+            <p className="text-xs text-white/25 font-mono">
+              {(selected!.file.size / 1024).toFixed(1)} KB
+            </p>
+          </div>
+        </div>
+        <ResultCard result={result} onReset={handleReset} />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-4">
-      {/* ── Drop zone ── */}
+      {/* Drop zone */}
       <div
         onClick={() => !selected && inputRef.current?.click()}
         onDragOver={onDragOver}
@@ -84,14 +107,12 @@ export default function ImageUploader() {
         `}
       >
         {selected ? (
-          /* ── Image preview ── */
           <div className="fade-in">
             <img
               src={selected.preview}
               alt="Selected"
               className="w-full max-h-72 object-contain rounded-xl"
             />
-            {/* Overlay with file info */}
             <div className="flex items-center justify-between px-4 py-3 bg-white/[0.03] border-t border-white/5">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
@@ -109,7 +130,7 @@ export default function ImageUploader() {
                 </div>
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); setSelected(null); }}
+                onClick={(e) => { e.stopPropagation(); handleReset(); }}
                 className="flex-shrink-0 w-6 h-6 rounded-md hover:bg-white/10 flex items-center justify-center text-white/30 hover:text-white/60 transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -120,7 +141,6 @@ export default function ImageUploader() {
             </div>
           </div>
         ) : (
-          /* ── Empty state ── */
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <div className={`w-14 h-14 rounded-2xl border border-white/10 flex items-center justify-center mb-5 transition-colors duration-300 ${isDragging ? "bg-cyan-500/10 border-cyan-500/30" : "bg-white/[0.03]"}`}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isDragging ? "#22d3ee" : "rgba(255,255,255,0.4)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -137,8 +157,6 @@ export default function ImageUploader() {
             </p>
           </div>
         )}
-
-        {/* Hidden native file input */}
         <input
           ref={inputRef}
           type="file"
@@ -148,7 +166,19 @@ export default function ImageUploader() {
         />
       </div>
 
-      {/* ── Analyze button ── */}
+      {/* Error message */}
+      {error && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 fade-in">
+          <svg className="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <p className="text-xs text-red-400 font-mono leading-relaxed">{error}</p>
+        </div>
+      )}
+
+      {/* Analyze button */}
       <button
         onClick={handleAnalyze}
         disabled={!selected || isAnalyzing}
@@ -171,11 +201,6 @@ export default function ImageUploader() {
           "Analyze Image →"
         )}
       </button>
-
-      {/* Phase notice */}
-      <p className="text-center text-xs text-white/20 font-mono">
-        Phase 1 — UI only · Detection coming in Phase 2
-      </p>
     </div>
   );
 }
