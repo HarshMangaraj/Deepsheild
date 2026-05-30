@@ -1,36 +1,31 @@
 import type { Metadata } from "next";
-import { Syne, JetBrains_Mono } from "next/font/google";
-import "./global.css";
+import { Cormorant_Garamond, DM_Mono } from "next/font/google";
+import "./globals.css";
 
-// WHY SYNE? It's a geometric sans-serif with a technical, futuristic feel —
-// perfect for a security/AI tool. JetBrains Mono adds credibility for
-// the monospaced labels and codes throughout the UI.
-const syne = Syne({
+// Cormorant Garamond — high-contrast editorial serif, luxury feel
+// DM Mono — clean monospace for data labels and numbers
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-syne",
-  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-cormorant",
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
-const mono = JetBrains_Mono({
+const dmMono = DM_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500"],
+  variable: "--font-dm-mono",
+  weight: ["300", "400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "DeepShield — AI Deepfake Detection",
-  description:
-    "Upload any image and instantly check if it was AI-generated or manipulated using advanced deepfake detection.",
+  title: "DeepShield — Deepfake Detection",
+  description: "Forensic-grade deepfake and AI image detection. Upload any photo or video to analyze for manipulation.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${syne.variable} ${mono.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" className={`${cormorant.variable} ${dmMono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

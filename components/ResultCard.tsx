@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DetectionResult } from "../lib/api";
 import SignalBreakdown from "./SignalBreakdown";
+import gsap from "gsap";
 
 interface ResultCardProps {
   result: DetectionResult;
@@ -10,141 +11,157 @@ interface ResultCardProps {
 }
 
 export default function ResultCard({ result, onReset }: ResultCardProps) {
-  const isFake = result.verdict === "FAKE";
-  const [showSignals, setShowSignals] = useState(true);
+  const isFake       = result.verdict === "FAKE";
+  const [open, setOpen] = useState(true);
+  const barRef       = useRef<HTMLDivElement>(null);
+  const scoreRef     = useRef<HTMLSpanElement>(null);
 
-  const accent = isFake
-    ? { text: "text-red-400",    border: "border-red-500/20",    bg: "bg-red-500/10",    bar: "bg-red-500",    glow: "shadow-red-500/20"    }
-    : { text: "text-emerald-400",border: "border-emerald-500/20",bg: "bg-emerald-500/10",bar: "bg-emerald-500",glow: "shadow-emerald-500/20" };
+  // Animate confidence bar on mount
+  useEffect(() => {
+    if (barRef.current) {
+      gsap.fromTo(
+        barRef.current,
+        { width: "0%" },
+        { width: `${result.confidence_pct}%`, duration: 1.2, ease: "power3.out", delay: 0.3 }
+      );
+    }
+    // Count-up animation for score
+    if (scoreRef.current) {
+      const obj = { val: 0 };
+      gsap.to(obj, {
+        val: result.confidence_pct,
+        duration: 1.2,
+        ease: "power3.out",
+        delay: 0.3,
+        onUpdate: () => {
+          if (scoreRef.current) scoreRef.current.textContent = obj.val.toFixed(1) + "%";
+        },
+      });
+    }
+  }, [result]);
+
+  const accentColor = isFake ? "var(--blush)" : "var(--sage)";
+  const accentBg    = isFake ? "#FDF0EC" : "#EEF4EC";
+  const accentBorder= isFake ? "#EAC4B8" : "#C4D0BC";
 
   return (
     <div className="w-full space-y-3">
       {/* ── Verdict card ── */}
-      <div className={`rounded-2xl border ${accent.border} ${accent.bg} overflow-hidden fade-in`}>
-        {/* Verdict header */}
-        <div className="px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {isFake ? (
-              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/20 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
+      <div
+        className="rounded-sm border overflow-hidden"
+        style={{ borderColor: accentBorder, background: accentBg }}
+      >
+        {/* Header */}
+        <div className="px-6 py-5 flex items-center justify-between border-b" style={{ borderColor: accentBorder }}>
+          <div className="flex items-center gap-4">
+            <div
+              className="w-9 h-9 rounded-sm flex items-center justify-center flex-shrink-0"
+              style={{ background: isFake ? "#F7D4C8" : "#C8DCC8", }}
+            >
+              {isFake ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
-              </div>
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
-              </div>
-            )}
+              )}
+            </div>
             <div>
-              <p className="text-white/40 text-xs font-mono uppercase tracking-widest">Verdict</p>
-              <p className={`text-2xl font-black tracking-tight ${accent.text}`}>
+              <p className="label-sm mb-0.5">Verdict</p>
+              <p className="text-2xl font-light" style={{ color: accentColor, fontFamily: "var(--font-display)" }}>
                 {isFake ? "Likely Deepfake" : "Likely Authentic"}
               </p>
             </div>
           </div>
-          <button
-            onClick={onReset}
-            className="text-xs font-mono text-white/30 hover:text-white/60 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5 border border-white/5"
-          >
+          <button onClick={onReset} className="label-sm hover:opacity-60 transition-opacity" style={{ color: "var(--graphite)" }}>
             ← New image
           </button>
         </div>
 
-        {/* Confidence bar */}
-        <div className="px-6 pb-5 space-y-2">
+        {/* Confidence */}
+        <div className="px-6 py-5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-white/40 uppercase tracking-widest">
-              {isFake ? "Fake" : "Real"} confidence
-            </span>
-            <span className={`text-sm font-bold font-mono ${accent.text}`}>
+            <span className="label-sm">{isFake ? "Fake" : "Real"} confidence</span>
+            <span ref={scoreRef} className="text-sm font-medium" style={{ color: accentColor, fontFamily: "var(--font-mono)" }}>
               {result.confidence_pct}%
             </span>
           </div>
-          <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+          <div className="bar-track">
             <div
-              className={`h-full rounded-full ${accent.bar} transition-all duration-700 ease-out`}
-              style={{ width: `${result.confidence_pct}%` }}
+              ref={barRef}
+              className="bar-fill"
+              style={{ background: accentColor, width: 0 }}
             />
           </div>
-          <p className="text-xs text-white/30">
+          <p className="text-xs leading-relaxed" style={{ color: "var(--graphite)" }}>
             {result.confidence_pct >= 90
               ? "Very high confidence — strong manipulation signals detected."
               : result.confidence_pct >= 70
               ? "High confidence — several anomalies found."
               : result.confidence_pct >= 55
               ? "Moderate confidence — some signals present, treat with caution."
-              : "Low confidence — image is close to the decision boundary."}
+              : "Low confidence — image is near the decision boundary."}
           </p>
         </div>
 
-        <div className="h-px bg-white/5 mx-6" />
-
-        {/* Metadata grid */}
-        <div className="px-6 py-4 grid grid-cols-3 gap-4">
+        {/* Metadata */}
+        <div className="px-6 pb-5 grid grid-cols-3 gap-4 border-t" style={{ borderColor: accentBorder }}>
           {[
-            { label: "Raw score",    value: result.fake_probability.toFixed(3), hint: "Model output before threshold" },
-            { label: "Processed in", value: `${result.processing_time_ms}ms`,   hint: "Server-side inference time"   },
-            { label: "Image size",   value: `${result.image_size.width}×${result.image_size.height}`, hint: "Original dimensions" },
-          ].map((item) => (
-            <div key={item.label} className="space-y-0.5">
-              <p className="text-white/25 text-xs font-mono uppercase tracking-widest">{item.label}</p>
-              <p className="text-white/70 text-sm font-semibold font-mono">{item.value}</p>
-              <p className="text-white/20 text-xs">{item.hint}</p>
+            { label: "Raw score",    value: result.fake_probability.toFixed(3) },
+            { label: "Processed in", value: `${result.processing_time_ms}ms`   },
+            { label: "Dimensions",   value: `${result.image_size.width}×${result.image_size.height}` },
+          ].map((m) => (
+            <div key={m.label} className="pt-4 space-y-0.5">
+              <p className="label-sm">{m.label}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--charcoal)", fontFamily: "var(--font-mono)" }}>{m.value}</p>
             </div>
           ))}
         </div>
 
         {/* Disclaimer */}
-        <div className="mx-6 mb-5 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5">
-          <p className="text-white/25 text-xs leading-relaxed">
-            <span className="text-white/40 font-semibold">Disclaimer:</span>{" "}
-            DeepShield is a portfolio ML project. Results should not be used as
-            sole evidence in legal or professional contexts.
+        <div className="mx-6 mb-5 px-4 py-3 rounded-sm border" style={{ borderColor: accentBorder, background: "rgba(255,255,255,0.4)" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--stone)" }}>
+            <span style={{ color: "var(--graphite)", fontWeight: 500 }}>Note: </span>
+            DeepShield is a portfolio ML project. Results should not be used as sole evidence in legal or professional contexts.
           </p>
         </div>
       </div>
 
-      {/* ── Signal breakdown toggle ── */}
-      {result.signals && result.signals.length > 0 && (
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
+      {/* ── Signals toggle ── */}
+      {result.signals?.length > 0 && (
+        <div className="rounded-sm border overflow-hidden" style={{ borderColor: "var(--sand)", background: "var(--parchment)" }}>
           <button
-            onClick={() => setShowSignals(!showSignals)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+            onClick={() => setOpen(!open)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:opacity-80 transition-opacity"
           >
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-white/70">Why was this flagged?</p>
-                <p className="text-xs text-white/30 font-mono">
-                  {result.signal_summary?.high ?? 0} high · {result.signal_summary?.medium ?? 0} medium · {result.signals.length} total signals
-                </p>
-              </div>
+              <span className="text-sm font-light" style={{ color: "var(--charcoal)", fontFamily: "var(--font-display)" }}>
+                Why was this flagged?
+              </span>
+              <span className="label-sm">
+                {result.signal_summary?.high ?? 0} high · {result.signal_summary?.medium ?? 0} medium
+              </span>
             </div>
             <svg
-              className={`transition-transform duration-300 ${showSignals ? "rotate-180" : ""}`}
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" strokeLinecap="round"
+              className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+              width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="var(--stone)" strokeWidth="2.5" strokeLinecap="round"
             >
-              <polyline points="6 9 12 15 18 9" />
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
           </button>
 
-          {showSignals && (
-            <div className="px-6 pb-6">
-              <SignalBreakdown
-                signals={result.signals}
-                summary={result.signal_summary ?? { high: 0, medium: 0, total: result.signals.length }}
-              />
+          {open && (
+            <div className="px-6 pb-6 border-t" style={{ borderColor: "var(--sand)" }}>
+              <div className="pt-4">
+                <SignalBreakdown
+                  signals={result.signals}
+                  summary={result.signal_summary ?? { high: 0, medium: 0, total: result.signals.length }}
+                />
+              </div>
             </div>
           )}
         </div>

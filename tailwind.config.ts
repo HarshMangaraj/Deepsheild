@@ -1,9 +1,5 @@
 import type { Config } from "tailwindcss";
 
-// WHY a custom config?
-// Tailwind's default setup is good, but we need to:
-// 1. Tell it where our components live (so it can purge unused styles in production)
-// 2. Register our custom Google Fonts as CSS variables so Tailwind's font utilities use them
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -13,9 +9,23 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // These match the CSS variable names we set in layout.tsx
-        sans: ["var(--font-syne)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        display: ["var(--font-cormorant)", "Georgia", "serif"],
+        mono:    ["var(--font-dm-mono)", "monospace"],
+        sans:    ["var(--font-cormorant)", "Georgia", "serif"],
+      },
+      colors: {
+        cream:     "#FAF8F3",
+        parchment: "#F5F0E8",
+        sand:      "#E8E0D0",
+        brass:     "#B8965A",
+        "brass-light": "#D4B07A",
+        charcoal:  "#1A1814",
+        ink:       "#2C2820",
+        graphite:  "#4A4540",
+        stone:     "#8A8278",
+        mist:      "#C8C0B4",
+        sage:      "#7A8C6E",
+        blush:     "#C4856A",
       },
     },
   },

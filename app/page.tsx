@@ -1,148 +1,251 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import ImageUploader from "../components/ImageUploader";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+// Dynamic import for Locomotive — browser only
+const LocomotiveWrapper = dynamic(
+  () => import("../components/LocomotiveWrapper"),
+  { ssr: false }
+);
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
+  const heroRef   = useRef<HTMLDivElement>(null);
+  const titleRef  = useRef<HTMLHeadingElement>(null);
+  const subRef    = useRef<HTMLParagraphElement>(null);
+  const badgeRef  = useRef<HTMLDivElement>(null);
+  const uploaderRef = useRef<HTMLDivElement>(null);
+  const howRef    = useRef<HTMLDivElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // ── GSAP entrance timeline ──
+    // WHY GSAP OVER CSS ANIMATIONS?
+    // GSAP gives us precise sequencing — "after A finishes, start B at 50%
+    // through A". CSS animations are parallel by default. For orchestrated
+    // reveals, GSAP timelines are much cleaner.
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      tl.from(badgeRef.current, { opacity: 0, y: 12, duration: 0.6 })
+        .from(titleRef.current?.children ?? [], {
+          opacity: 0, y: 40, duration: 0.9, stagger: 0.12
+        }, "-=0.3")
+        .from(subRef.current, { opacity: 0, y: 20, duration: 0.7 }, "-=0.5")
+        .from(uploaderRef.current, { opacity: 0, y: 30, duration: 0.8 }, "-=0.4");
+
+      // Scroll-triggered reveals for "how it works"
+      if (howRef.current) {
+        gsap.from(howRef.current.querySelectorAll(".how-card"), {
+          scrollTrigger: {
+            trigger: howRef.current,
+            start: "top 80%",
+          },
+          opacity: 0,
+          y: 32,
+          duration: 0.7,
+          stagger: 0.15,
+          ease: "power3.out",
+        });
+      }
+
+      // Banner fade
+      if (bannerRef.current) {
+        gsap.from(bannerRef.current, {
+          scrollTrigger: {
+            trigger: bannerRef.current,
+            start: "top 85%",
+          },
+          opacity: 0,
+          y: 24,
+          duration: 0.7,
+          ease: "power3.out",
+        });
+      }
+    });
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
-      {/* ── Header ── */}
-      <header className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-          </div>
-          <span className="font-bold text-lg tracking-tight">DeepShield</span>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* ── NEW in Phase 5: Resources link ── */}
-          <Link
-            href="/resources"
-            className="flex items-center gap-1.5 text-xs font-mono text-white/40 hover:text-violet-400 transition-colors"
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            Legal Resources
-          </Link>
-          <div className="flex items-center gap-2 text-xs text-white/40 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            PHASE 5 · COMPLETE
-          </div>
-        </div>
-      </header>
+    <LocomotiveWrapper>
+      <div className="min-h-screen flex flex-col" style={{ background: "var(--cream)" }}>
 
-      {/* ── Hero ── */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-2xl w-full mx-auto flex flex-col items-center gap-10">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-xs font-mono tracking-widest uppercase">
-            <span className="w-1 h-1 rounded-full bg-cyan-400" />
-            AI Deepfake Detection
-          </div>
-
-          <div className="text-center space-y-3">
-            <h1 className="text-5xl font-black tracking-tight leading-[1.05]">
-              Is this image{" "}
-              <span className="relative inline-block">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400">
-                  real?
-                </span>
-                <span className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-cyan-400/0 via-cyan-400/60 to-cyan-400/0" />
-              </span>
-            </h1>
-            <p className="text-white/45 text-lg font-light max-w-md mx-auto leading-relaxed">
-              Upload any photo. DeepShield analyzes it for AI generation,
-              manipulation, and deepfake artifacts.
-            </p>
-          </div>
-
-          <ImageUploader />
-
-          <div className="flex items-center gap-6 text-white/25 text-xs font-mono">
-            <span className="flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        {/* ── Header ── */}
+        <header
+          data-scroll
+          data-scroll-sticky
+          data-scroll-target="[data-scroll-container]"
+          className="flex items-center justify-between px-8 md:px-16 py-5 border-b"
+          style={{ borderColor: "var(--border)", background: "var(--cream)", zIndex: 100 }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-sm flex items-center justify-center" style={{ background: "var(--charcoal)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cream)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
-              Images never stored
-            </span>
-            <span className="w-px h-3 bg-white/10" />
-            <span className="flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Free to use
-            </span>
-            <span className="w-px h-3 bg-white/10" />
-            <span className="flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              Supports JPG, PNG, WEBP
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section className="border-t border-white/5 px-8 py-12">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-white/30 text-xs font-mono uppercase tracking-widest text-center mb-8">How it works</p>
-          <div className="grid grid-cols-3 gap-6">
-            {[
-              { step: "01", title: "Upload",   desc: "Drop any photo — portrait, screenshot, news image, anything." },
-              { step: "02", title: "Analyze",  desc: "Our model scans for GAN artifacts, frequency anomalies, and inconsistencies." },
-              { step: "03", title: "Report",   desc: "Get a confidence score and a breakdown of what signals were found." },
-            ].map((item) => (
-              <div key={item.step} className="group relative p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
-                <div className="font-mono text-xs text-cyan-500/60 mb-3">{item.step}</div>
-                <div className="font-semibold text-sm text-white/80 mb-1.5">{item.title}</div>
-                <div className="text-xs text-white/35 leading-relaxed">{item.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Victim support banner ── */}
-      <section className="border-t border-white/5 px-8 py-8">
-        <div className="max-w-3xl mx-auto">
-          <Link
-            href="/resources"
-            className="flex items-center justify-between p-5 rounded-2xl border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 transition-colors group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white/75">Victim of a deepfake?</p>
-                <p className="text-xs text-white/35 mt-0.5">
-                  Indian laws, reporting steps, NGO contacts, and a step-by-step guide for victims.
-                </p>
-              </div>
             </div>
-            <svg className="text-violet-400 group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </Link>
-        </div>
-      </section>
+            <span className="font-display font-semibold text-base tracking-tight" style={{ color: "var(--charcoal)" }}>
+              DeepShield
+            </span>
+          </div>
+          <nav className="flex items-center gap-6">
+            <Link href="/resources" className="label-sm hover:opacity-70 transition-opacity" style={{ color: "var(--graphite)" }}>
+              Legal Resources
+            </Link>
+            <div className="label-sm flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--sage)" }} />
+              <span style={{ color: "var(--stone)" }}>System online</span>
+            </div>
+          </nav>
+        </header>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/5 px-8 py-4 flex items-center justify-between text-white/20 text-xs font-mono">
-        <span>DeepShield · Portfolio Project</span>
-        <span>Built with Next.js · Tailwind · Python</span>
-      </footer>
-    </main>
+        {/* ── Hero ── */}
+        <section
+          ref={heroRef}
+          data-scroll-section
+          className="flex-1 flex flex-col items-center justify-center px-6 md:px-16 py-24 md:py-32 relative overflow-hidden"
+        >
+          {/* Decorative thin rules */}
+          <div className="absolute top-0 left-16 w-px h-32 opacity-20" style={{ background: "var(--brass)" }} />
+          <div className="absolute top-0 right-16 w-px h-24 opacity-10" style={{ background: "var(--mist)" }} />
+
+          <div className="max-w-2xl w-full mx-auto flex flex-col items-center gap-10">
+            {/* Badge */}
+            <div ref={badgeRef} className="flex items-center gap-2.5">
+              <div className="rule-strong w-8" />
+              <span className="label-sm">Forensic image analysis</span>
+              <div className="rule-strong w-8" />
+            </div>
+
+            {/* Title */}
+            <h1
+              ref={titleRef}
+              className="display-xl text-center"
+              style={{ color: "var(--charcoal)" }}
+            >
+              <span className="block">Is this</span>
+              <span className="block italic" style={{ color: "var(--brass)" }}>image real?</span>
+            </h1>
+
+            {/* Subtitle */}
+            <p
+              ref={subRef}
+              className="text-center text-lg font-light max-w-md leading-relaxed"
+              style={{ color: "var(--graphite)", fontFamily: "var(--font-display)" }}
+            >
+              Upload any photograph. DeepShield analyses it for AI generation,
+              facial manipulation, and synthetic artifacts using forensic-grade detection.
+            </p>
+
+            {/* Uploader */}
+            <div ref={uploaderRef} className="w-full">
+              <ImageUploader />
+            </div>
+
+            {/* Trust line */}
+            <div className="flex items-center gap-5" style={{ color: "var(--stone)" }}>
+              {["Images never stored", "Free to use", "JPG · PNG · WEBP · MP4"].map((item, i) => (
+                <span key={item} className="flex items-center gap-5">
+                  {i > 0 && <span className="w-px h-3" style={{ background: "var(--mist)" }} />}
+                  <span className="label-sm">{item}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Thin rule ── */}
+        <div className="rule mx-8 md:mx-16" />
+
+        {/* ── How it works ── */}
+        <section
+          ref={howRef}
+          data-scroll-section
+          className="px-8 md:px-16 py-20"
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-4 mb-12">
+              <span className="label-md">How it works</span>
+              <div className="rule flex-1" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { n: "01", title: "Upload",   desc: "Drop any photo or short video clip. We accept JPEG, PNG, WEBP, and MP4 up to 50MB." },
+                { n: "02", title: "Analyse",  desc: "EfficientNet-B4 scans for GAN artifacts, frequency anomalies, and facial inconsistencies across frames." },
+                { n: "03", title: "Interpret",desc: "Receive a confidence score, per-signal breakdown, and plain-English explanation of every finding." },
+              ].map((step) => (
+                <div key={step.n} className="how-card group">
+                  <div className="flex items-start gap-4 mb-4">
+                    <span className="label-sm pt-1" style={{ color: "var(--brass)" }}>{step.n}</span>
+                    <div className="rule flex-1 mt-3" />
+                  </div>
+                  <h3 className="text-xl font-light mb-3" style={{ color: "var(--charcoal)", fontFamily: "var(--font-display)" }}>
+                    {step.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--graphite)" }}>
+                    {step.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Rule ── */}
+        <div className="rule mx-8 md:mx-16" />
+
+        {/* ── Victim support banner ── */}
+        <section
+          ref={bannerRef}
+          data-scroll-section
+          className="px-8 md:px-16 py-12"
+        >
+          <div className="max-w-4xl mx-auto">
+            <Link
+              href="/resources"
+              className="card-hover flex items-center justify-between p-6 md:p-8 rounded-sm border group"
+              style={{ borderColor: "var(--sand)", background: "var(--parchment)" }}
+            >
+              <div className="flex items-start gap-6">
+                <div className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "var(--charcoal)" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cream)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-base font-medium mb-1" style={{ color: "var(--charcoal)", fontFamily: "var(--font-display)" }}>
+                    Have you been a victim of a deepfake?
+                  </p>
+                  <p className="text-sm" style={{ color: "var(--graphite)" }}>
+                    Indian laws, step-by-step reporting guide, NGO contacts, and legal resources — all in one place.
+                  </p>
+                </div>
+              </div>
+              <div className="flex-shrink-0 ml-6 label-sm group-hover:translate-x-1 transition-transform" style={{ color: "var(--brass)" }}>
+                View resources →
+              </div>
+            </Link>
+          </div>
+        </section>
+
+        {/* ── Footer ── */}
+        <footer
+          data-scroll-section
+          className="border-t px-8 md:px-16 py-5 flex items-center justify-between"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <span className="label-sm">DeepShield · Portfolio Project</span>
+          <span className="label-sm">Next.js · FastAPI · PyTorch</span>
+        </footer>
+
+      </div>
+    </LocomotiveWrapper>
   );
 }

@@ -1,401 +1,246 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-// ── DATA ──
-// All legal and resource data is defined here as constants.
-// In a real app you might fetch this from a CMS, but for a portfolio
-// project keeping it co-located with the page is clean and simple.
+const LocomotiveWrapper = dynamic(
+  () => import("../../components/LocomotiveWrapper"),
+  { ssr: false }
+);
+
+gsap.registerPlugin(ScrollTrigger);
 
 const STEPS = [
-  {
-    number: "01",
-    title: "Stay calm and document everything",
-    body: "Before doing anything else, take screenshots of where the image appears — the URL, the post, the username, timestamps. Save them to a folder. This evidence is critical for any complaint. Do not contact the person who posted it yet.",
-    urgency: "Do this first",
-    color: "cyan",
-  },
-  {
-    number: "02",
-    title: "Report to the platform immediately",
-    body: "Every major platform (Instagram, Twitter/X, Telegram, YouTube, Reddit) has a 'Report > Non-consensual intimate images' option. Use it. Under India's IT Act, platforms must take down reported content within 24 hours or face liability. Report from multiple accounts if possible to escalate.",
-    urgency: "Within 24 hours",
-    color: "blue",
-  },
-  {
-    number: "03",
-    title: "File a complaint with the Cyber Crime Portal",
-    body: "Go to cybercrime.gov.in and file under 'Report Women/Child Related Crime'. You can report anonymously. Mention Section 66E and Section 67A of the IT Act in your complaint. You will receive a complaint ID — save it.",
-    urgency: "Within 48 hours",
-    color: "violet",
-  },
-  {
-    number: "04",
-    title: "File an FIR at your local police station",
-    body: "Visit your nearest police station and request an FIR under BNS (Bharatiya Nyaya Sanhita) Section 95 (voyeurism) and Section 96 (stalking/image-based abuse). If the officer refuses to register an FIR, you can escalate to the Superintendent of Police or approach a magistrate directly.",
-    urgency: "Within 72 hours",
-    color: "purple",
-  },
-  {
-    number: "05",
-    title: "Contact an NGO for legal and emotional support",
-    body: "You do not have to do this alone. iCall, iDiva Legal Help, and the Cyber Peace Foundation offer free legal guidance and emotional support specifically for image-based abuse victims. They can help you navigate the complaint process and connect you with pro-bono lawyers.",
-    urgency: "Anytime",
-    color: "pink",
-  },
+  { n: "01", title: "Document everything first",    urgency: "Immediately",  color: "var(--brass)",    body: "Before doing anything else, take screenshots of where the image appears — the URL, post, username, and timestamps. Save them to a dedicated folder. Do not contact the perpetrator yet. This evidence is critical for any formal complaint." },
+  { n: "02", title: "Report to the platform",       urgency: "Within 24 hrs", color: "var(--graphite)", body: "Every major platform (Instagram, Twitter/X, Telegram, YouTube, Reddit) has a 'Report → Non-consensual intimate images' option. Under India's IT Act, platforms must act within 24 hours or face liability. Report from multiple accounts if possible to escalate." },
+  { n: "03", title: "File on Cyber Crime Portal",   urgency: "Within 48 hrs", color: "var(--graphite)", body: "Visit cybercrime.gov.in and file under 'Report Women/Child Related Crime'. You can report anonymously. Mention Section 66E and Section 67A of the IT Act. You will receive a complaint ID — save it for all future correspondence." },
+  { n: "04", title: "File an FIR",                  urgency: "Within 72 hrs", color: "var(--graphite)", body: "Visit your nearest police station and request an FIR under BNS Section 95 (voyeurism) and Section 96 (stalking/image-based abuse). If refused, escalate to the Superintendent of Police or approach a magistrate directly." },
+  { n: "05", title: "Contact an NGO",               urgency: "Anytime",       color: "var(--sage)",     body: "You do not have to navigate this alone. iCall, Cyber Peace Foundation, and Majlis Legal Centre offer free legal guidance and emotional support specifically for image-based abuse victims." },
 ];
 
 const LAWS = [
-  {
-    act: "IT Act, 2000",
-    section: "Section 66E",
-    title: "Violation of Privacy",
-    description: "Captures, publishes or transmits the image of a private area of any person without their consent. Covers deepfakes that sexualise a real person's likeness.",
-    punishment: "Up to 3 years imprisonment or ₹2 lakh fine",
-    applicability: "Directly applicable to deepfake NCII",
-    strength: "high",
-  },
-  {
-    act: "IT Act, 2000",
-    section: "Section 67A",
-    title: "Publishing Sexually Explicit Material",
-    description: "Punishes publishing or transmitting material containing sexually explicit acts in electronic form. AI-generated explicit content using someone's likeness falls under this.",
-    punishment: "Up to 5 years imprisonment + ₹10 lakh fine (first offence)",
-    applicability: "Applies to explicit deepfakes",
-    strength: "high",
-  },
-  {
-    act: "IT Act, 2000",
-    section: "Section 67",
-    title: "Publishing Obscene Material",
-    description: "Covers publishing obscene content electronically. Broader than 67A — applies to non-explicit but harmful deepfake content.",
-    punishment: "Up to 3 years + ₹5 lakh fine (first offence)",
-    applicability: "Non-explicit but obscene deepfakes",
-    strength: "medium",
-  },
-  {
-    act: "BNS, 2023",
-    section: "Section 95",
-    title: "Voyeurism",
-    description: "The Bharatiya Nyaya Sanhita (which replaced IPC) covers capturing or disseminating images of a person engaged in a private act without consent. Modernised to cover digital offences.",
-    punishment: "1–3 years imprisonment (first offence), up to 7 years (repeat)",
-    applicability: "Image-based abuse including deepfakes",
-    strength: "high",
-  },
-  {
-    act: "BNS, 2023",
-    section: "Section 96",
-    title: "Stalking (Online Harassment)",
-    description: "Covers persistent online monitoring, contacting, or publishing content about a person that causes distress. Applicable when deepfakes are used to harass or intimidate.",
-    punishment: "Up to 3 years (first offence), up to 5 years (repeat)",
-    applicability: "Harassment campaigns using deepfakes",
-    strength: "medium",
-  },
-  {
-    act: "IT (Intermediary Guidelines) Rules, 2021",
-    section: "Rule 3(1)(b)",
-    title: "Platform Takedown Obligation",
-    description: "Social media platforms must acknowledge complaints within 24 hours and resolve within 15 days. For non-consensual intimate images, the timeline is stricter. Platforms that don't act face liability.",
-    punishment: "Platform loses safe harbour protection under IT Act",
-    applicability: "Forcing platforms to act",
-    strength: "medium",
-  },
+  { act: "IT Act, 2000",   section: "§ 66E",  title: "Violation of Privacy",          strength: "high",   punishment: "3 yrs · ₹2L fine",     desc: "Captures, publishes or transmits the image of a private area without consent. Directly covers deepfakes that sexualise a real person's likeness." },
+  { act: "IT Act, 2000",   section: "§ 67A",  title: "Sexually Explicit Material",     strength: "high",   punishment: "5 yrs · ₹10L fine",    desc: "Punishes publishing or transmitting material containing sexually explicit acts electronically. AI-generated explicit content using someone's likeness falls under this." },
+  { act: "IT Act, 2000",   section: "§ 67",   title: "Publishing Obscene Material",    strength: "medium", punishment: "3 yrs · ₹5L fine",     desc: "Broader than 67A — applies to non-explicit but harmful deepfake content published electronically." },
+  { act: "BNS, 2023",      section: "§ 95",   title: "Voyeurism",                      strength: "high",   punishment: "1–7 yrs",              desc: "The modernised Bharatiya Nyaya Sanhita provision covering capture or dissemination of private images without consent, updated for digital offences." },
+  { act: "BNS, 2023",      section: "§ 96",   title: "Stalking / Online Harassment",   strength: "medium", punishment: "3–5 yrs",              desc: "Covers persistent online harassment using image-based content. Applicable when deepfakes are used to intimidate or coerce." },
+  { act: "IT Rules, 2021", section: "R. 3(1)(b)", title: "Platform Takedown Obligation", strength: "medium", punishment: "Loss of safe harbour", desc: "Platforms must acknowledge complaints within 24 hrs and resolve within 15 days. Non-compliance removes their liability protection under the IT Act." },
 ];
 
 const NGOS = [
-  {
-    name: "National Cyber Crime Reporting Portal",
-    type: "Government",
-    description: "Official government portal to report cybercrime including image-based abuse, deepfakes, and online harassment. Anonymous reporting available.",
-    contact: "cybercrime.gov.in",
-    phone: "1930",
-    url: "https://cybercrime.gov.in",
-    tags: ["FIR", "Anonymous", "24/7"],
-  },
-  {
-    name: "iCall — TISS",
-    type: "NGO · Counselling",
-    description: "Free psychological counselling and support from Tata Institute of Social Sciences. Specialises in trauma from online abuse and image-based violence.",
-    contact: "icallhelpline.org",
-    phone: "9152987821",
-    url: "https://icallhelpline.org",
-    tags: ["Free", "Confidential", "Counselling"],
-  },
-  {
-    name: "Cyber Peace Foundation",
-    type: "NGO · Legal + Tech",
-    description: "India's leading cybersecurity NGO. Offers free legal guidance for deepfake victims, platform escalation support, and policy advocacy.",
-    contact: "cyberpeace.net.in",
-    phone: null,
-    url: "https://cyberpeace.net.in",
-    tags: ["Free Legal Aid", "Escalation", "Policy"],
-  },
-  {
-    name: "iDiva Legal Help",
-    type: "NGO · Women's Rights",
-    description: "Legal aid specifically for women facing online harassment, non-consensual image sharing, and digital abuse. Connects victims with pro-bono lawyers.",
-    contact: "Via website",
-    phone: null,
-    url: "https://idiva.com",
-    tags: ["Women-focused", "Pro-bono", "Legal"],
-  },
-  {
-    name: "Majlis Legal Centre",
-    type: "NGO · Legal",
-    description: "Mumbai-based legal resource centre for women. Provides representation and counselling for cases involving image-based abuse and digital violence.",
-    contact: "majlislaw.com",
-    phone: "022-23792192",
-    url: "https://majlislaw.com",
-    tags: ["Legal Aid", "Mumbai", "Representation"],
-  },
-  {
-    name: "National Commission for Women",
-    type: "Government Body",
-    description: "Statutory body that can take up complaints and direct police action. Useful when local police are unresponsive. File complaints online.",
-    contact: "ncw.nic.in",
-    phone: "7827170170",
-    url: "https://ncw.nic.in",
-    tags: ["Government", "Police Escalation", "Complaints"],
-  },
+  { name: "National Cyber Crime Portal",  type: "Government",        phone: "1930",        url: "https://cybercrime.gov.in",    tags: ["FIR", "Anonymous", "24/7"],           desc: "Official portal to report cybercrime including deepfakes. Anonymous reporting available. Helpline 1930 is 24/7." },
+  { name: "iCall — TISS",                 type: "NGO · Counselling", phone: "9152987821",  url: "https://icallhelpline.org",    tags: ["Free", "Confidential", "Counselling"], desc: "Free psychological counselling from Tata Institute of Social Sciences, specialising in trauma from online abuse." },
+  { name: "Cyber Peace Foundation",       type: "NGO · Legal + Tech",phone: null,           url: "https://cyberpeace.net.in",   tags: ["Free Legal Aid", "Escalation"],        desc: "India's leading cybersecurity NGO offering free legal guidance, platform escalation support, and policy advocacy." },
+  { name: "Majlis Legal Centre",          type: "NGO · Legal",       phone: "022-23792192", url: "https://majlislaw.com",       tags: ["Legal Aid", "Representation"],         desc: "Mumbai-based legal resource centre providing representation and counselling for image-based abuse cases." },
+  { name: "National Commission for Women",type: "Government Body",   phone: "7827170170",  url: "https://ncw.nic.in",          tags: ["Government", "Police Escalation"],     desc: "Statutory body that can direct police action. Useful when local police are unresponsive. File complaints online." },
 ];
-
-const STRENGTH_CONFIG = {
-  high:   { label: "Strong protection", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-  medium: { label: "Partial protection", color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/20"  },
-};
-
-const STEP_COLORS: Record<string, string> = {
-  cyan:   "border-cyan-500/20   bg-cyan-500/5   text-cyan-400",
-  blue:   "border-blue-500/20   bg-blue-500/5   text-blue-400",
-  violet: "border-violet-500/20 bg-violet-500/5 text-violet-400",
-  purple: "border-purple-500/20 bg-purple-500/5 text-purple-400",
-  pink:   "border-pink-500/20   bg-pink-500/5   text-pink-400",
-};
 
 type Tab = "steps" | "laws" | "ngos";
 
 export default function ResourcesPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("steps");
+  const [tab, setTab] = useState<Tab>("steps");
+  const heroRef    = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  const tabs: { id: Tab; label: string; count?: number }[] = [
-    { id: "steps", label: "Step-by-step guide" },
-    { id: "laws",  label: "Indian laws",  count: LAWS.length  },
-    { id: "ngos",  label: "Get help",     count: NGOS.length  },
-  ];
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      if (heroRef.current) {
+        gsap.from(heroRef.current.children, {
+          opacity: 0, y: 30, duration: 0.8,
+          stagger: 0.12, ease: "power3.out",
+        });
+      }
+    });
+    return () => ctx.revert();
+  }, []);
+
+  // Animate content when tab changes
+  useEffect(() => {
+    if (contentRef.current) {
+      gsap.from(contentRef.current.children, {
+        opacity: 0, y: 16, duration: 0.5,
+        stagger: 0.07, ease: "power3.out",
+      });
+    }
+  }, [tab]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
+    <LocomotiveWrapper>
+      <div className="min-h-screen flex flex-col" style={{ background: "var(--cream)" }}>
 
-      {/* ── Header ── */}
-      <header className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-          </div>
-          <span className="font-bold text-lg tracking-tight group-hover:text-cyan-400 transition-colors">DeepShield</span>
-        </Link>
-        <Link
-          href="/"
-          className="text-xs font-mono text-white/30 hover:text-white/60 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5 border border-white/5"
-        >
-          ← Back to detector
-        </Link>
-      </header>
+        {/* ── Header ── */}
+        <header className="flex items-center justify-between px-8 md:px-16 py-5 border-b" style={{ borderColor: "var(--border)", background: "var(--cream)" }}>
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-7 h-7 rounded-sm flex items-center justify-center" style={{ background: "var(--charcoal)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cream)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <span className="font-display font-semibold text-base tracking-tight group-hover:opacity-70 transition-opacity" style={{ color: "var(--charcoal)" }}>DeepShield</span>
+          </Link>
+          <Link href="/" className="label-sm hover:opacity-70 transition-opacity" style={{ color: "var(--graphite)" }}>
+            ← Back to detector
+          </Link>
+        </header>
 
-      <div className="flex-1 max-w-3xl mx-auto w-full px-6 py-12 space-y-10">
+        <div className="max-w-3xl mx-auto w-full px-6 md:px-8 py-16 space-y-12 flex-1">
 
-        {/* ── Hero ── */}
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 text-violet-400 text-xs font-mono tracking-widest uppercase">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            India · Legal Resources
-          </div>
-          <h1 className="text-4xl font-black tracking-tight">
-            Your rights if you're a{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">
-              victim of deepfakes
-            </span>
-          </h1>
-          <p className="text-white/45 text-base leading-relaxed max-w-2xl">
-            If your image has been used without consent — in a deepfake, AI-generated content,
-            or manipulated photo — you have legal protections in India. This page explains
-            what to do, which laws apply, and where to get help.
-          </p>
-          {/* Crisis banner */}
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
-            <svg className="flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            <p className="text-sm text-white/60">
-              <span className="text-red-400 font-semibold">Emergency helpline: </span>
-              Call <span className="text-white font-mono font-bold">1930</span> (National Cyber Crime) or{" "}
-              <span className="text-white font-mono font-bold">1091</span> (Women in distress) — available 24/7.
+          {/* ── Hero ── */}
+          <div ref={heroRef} className="space-y-5" data-scroll-section>
+            <div className="flex items-center gap-4">
+              <span className="label-md">India · Legal Resources</span>
+              <div className="rule flex-1" />
+            </div>
+            <h1 className="display-lg" style={{ color: "var(--charcoal)" }}>
+              Your rights as a<br />
+              <span className="italic" style={{ color: "var(--brass)" }}>deepfake victim</span>
+            </h1>
+            <p className="text-base font-light leading-relaxed max-w-xl" style={{ color: "var(--graphite)", fontFamily: "var(--font-display)" }}>
+              If your image has been used without consent, you have legal protections in India. This page explains what to do, which laws apply, and where to get help.
             </p>
-          </div>
-        </div>
-
-        {/* ── Tabs ── */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/5 w-fit">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                ${activeTab === tab.id
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-white/40 hover:text-white/60"}
-              `}
-            >
-              {tab.label}
-              {tab.count && (
-                <span className={`text-xs font-mono px-1.5 py-0.5 rounded-md ${activeTab === tab.id ? "bg-white/10 text-white/60" : "bg-white/5 text-white/25"}`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* ── STEP BY STEP TAB ── */}
-        {activeTab === "steps" && (
-          <div className="space-y-4">
-            <p className="text-sm text-white/40">
-              Follow these steps in order. Each one builds on the last.
-            </p>
-            {STEPS.map((step) => {
-              const colorClass = STEP_COLORS[step.color];
-              return (
-                <div key={step.number} className={`rounded-2xl border p-5 space-y-3 ${colorClass}`}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-black opacity-40 font-mono">{step.number}</span>
-                      <h3 className="text-sm font-bold text-white/80">{step.title}</h3>
-                    </div>
-                    <span className="flex-shrink-0 text-xs font-mono px-2.5 py-1 rounded-full border opacity-80" style={{borderColor: "currentColor"}}>
-                      {step.urgency}
-                    </span>
-                  </div>
-                  <p className="text-sm text-white/45 leading-relaxed pl-10">{step.body}</p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── LAWS TAB ── */}
-        {activeTab === "laws" && (
-          <div className="space-y-4">
-            <p className="text-sm text-white/40">
-              These are the primary Indian laws applicable to deepfake abuse as of 2024.
-            </p>
-            {LAWS.map((law) => {
-              const cfg = STRENGTH_CONFIG[law.strength as keyof typeof STRENGTH_CONFIG];
-              return (
-                <div key={law.section} className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 space-y-3 hover:bg-white/[0.04] transition-colors">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-white/30">{law.act}</span>
-                        <span className="w-1 h-1 rounded-full bg-white/20" />
-                        <span className="text-xs font-mono font-bold text-cyan-400">{law.section}</span>
-                      </div>
-                      <h3 className="text-sm font-bold text-white/80">{law.title}</h3>
-                    </div>
-                    <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border font-mono ${cfg.color} ${cfg.bg} ${cfg.border}`}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <p className="text-sm text-white/45 leading-relaxed">{law.description}</p>
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5">
-                      <p className="text-xs text-white/25 font-mono uppercase tracking-widest mb-1">Punishment</p>
-                      <p className="text-xs text-white/60">{law.punishment}</p>
-                    </div>
-                    <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5">
-                      <p className="text-xs text-white/25 font-mono uppercase tracking-widest mb-1">Applies to</p>
-                      <p className="text-xs text-white/60">{law.applicability}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <div className="px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5">
-              <p className="text-xs text-white/25 leading-relaxed">
-                <span className="text-white/40 font-semibold">Note:</span>{" "}
-                This is general information, not legal advice. Laws are evolving — India's
-                IT Amendment Bill (2023) is expected to add specific deepfake provisions.
-                Consult a lawyer for advice on your specific situation.
+            {/* Emergency */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-sm border" style={{ borderColor: "#EAC4B8", background: "#FDF0EC" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blush)" strokeWidth="2" strokeLinecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <p className="text-sm" style={{ color: "var(--graphite)" }}>
+                Emergency: Call{" "}
+                <span className="font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--charcoal)" }}>1930</span>
+                {" "}(National Cyber Crime) or{" "}
+                <span className="font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--charcoal)" }}>1091</span>
+                {" "}(Women in distress) — 24/7
               </p>
             </div>
           </div>
-        )}
 
-        {/* ── NGOs / GET HELP TAB ── */}
-        {activeTab === "ngos" && (
-          <div className="space-y-4">
-            <p className="text-sm text-white/40">
-              These organisations offer free support — legal, emotional, or both.
-            </p>
-            {NGOS.map((org) => (
-              <div key={org.name} className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 space-y-3 hover:bg-white/[0.04] transition-colors">
+          {/* ── Tabs ── */}
+          <div className="flex items-end gap-0 border-b" style={{ borderColor: "var(--border)" }}>
+            {([
+              { id: "steps", label: "Step-by-step guide" },
+              { id: "laws",  label: `Laws (${LAWS.length})` },
+              { id: "ngos",  label: `Get help (${NGOS.length})` },
+            ] as { id: Tab; label: string }[]).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="px-5 py-3 text-sm transition-opacity"
+                style={{
+                  color: tab === t.id ? "var(--charcoal)" : "var(--stone)",
+                  fontFamily: "var(--font-display)",
+                  fontWeight: tab === t.id ? 500 : 400,
+                  borderBottom: tab === t.id ? "1.5px solid var(--brass)" : "1.5px solid transparent",
+                  marginBottom: "-1px",
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Tab content ── */}
+          <div ref={contentRef} className="space-y-4" data-scroll-section>
+
+            {/* Steps */}
+            {tab === "steps" && STEPS.map((s) => (
+              <div key={s.n} className="card-hover rounded-sm border px-6 py-5 space-y-3" style={{ borderColor: "var(--sand)", background: "var(--parchment)" }}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <span className="text-2xl font-light opacity-30 leading-none mt-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--charcoal)" }}>{s.n}</span>
+                    <h3 className="text-base font-medium" style={{ color: "var(--charcoal)", fontFamily: "var(--font-display)" }}>{s.title}</h3>
+                  </div>
+                  <span className="label-sm flex-shrink-0 px-2.5 py-1 rounded-sm border" style={{ borderColor: "var(--mist)", color: s.color }}>
+                    {s.urgency}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed pl-10" style={{ color: "var(--graphite)" }}>{s.body}</p>
+              </div>
+            ))}
+
+            {/* Laws */}
+            {tab === "laws" && (
+              <>
+                {LAWS.map((l) => (
+                  <div key={l.section} className="card-hover rounded-sm border px-5 py-5 space-y-3" style={{ borderColor: "var(--sand)", background: "var(--parchment)" }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="label-sm" style={{ color: "var(--stone)" }}>{l.act}</span>
+                          <span className="w-px h-3" style={{ background: "var(--mist)" }} />
+                          <span className="label-sm" style={{ fontFamily: "var(--font-mono)", color: "var(--brass)" }}>{l.section}</span>
+                        </div>
+                        <h3 className="text-base font-medium" style={{ color: "var(--charcoal)", fontFamily: "var(--font-display)" }}>{l.title}</h3>
+                      </div>
+                      <span
+                        className="flex-shrink-0 text-xs px-2.5 py-1 rounded-sm font-mono"
+                        style={{
+                          background: l.strength === "high" ? "#EEF4EC" : "#FDF8EC",
+                          color: l.strength === "high" ? "var(--sage)" : "#A0823A",
+                          border: `1px solid ${l.strength === "high" ? "#C4D0BC" : "#E8D4A0"}`,
+                        }}
+                      >
+                        {l.strength === "high" ? "Strong" : "Partial"}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--graphite)" }}>{l.desc}</p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="label-sm">Punishment:</span>
+                      <span className="text-xs font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--charcoal)" }}>{l.punishment}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="px-4 py-3 rounded-sm border" style={{ borderColor: "var(--sand)", background: "var(--parchment)" }}>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--stone)" }}>
+                    General information only, not legal advice. India's IT Amendment Bill (2023) is expected to add specific deepfake provisions. Consult a lawyer for your specific situation.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* NGOs */}
+            {tab === "ngos" && NGOS.map((o) => (
+              <div key={o.name} className="card-hover rounded-sm border px-5 py-5 space-y-3" style={{ borderColor: "var(--sand)", background: "var(--parchment)" }}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-white/80">{org.name}</h3>
-                    <p className="text-xs text-white/30 font-mono mt-0.5">{org.type}</p>
+                    <h3 className="text-base font-medium" style={{ color: "var(--charcoal)", fontFamily: "var(--font-display)" }}>{o.name}</h3>
+                    <p className="label-sm mt-0.5">{o.type}</p>
                   </div>
                   <a
-                    href={org.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0 flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors px-3 py-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10"
+                    href={o.url} target="_blank" rel="noopener noreferrer"
+                    className="flex-shrink-0 text-xs px-3 py-1.5 rounded-sm border transition-opacity hover:opacity-70"
+                    style={{ borderColor: "var(--mist)", color: "var(--brass)", fontFamily: "var(--font-mono)" }}
                   >
-                    Visit
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <line x1="7" y1="17" x2="17" y2="7" />
-                      <polyline points="7 7 17 7 17 17" />
-                    </svg>
+                    Visit ↗
                   </a>
                 </div>
-                <p className="text-sm text-white/45 leading-relaxed">{org.description}</p>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--graphite)" }}>{o.desc}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1.5">
-                    {org.tags.map((tag) => (
-                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-white/40 font-mono">
-                        {tag}
+                    {o.tags.map((t) => (
+                      <span key={t} className="text-xs px-2 py-0.5 rounded-sm border" style={{ borderColor: "var(--mist)", color: "var(--stone)", fontFamily: "var(--font-mono)" }}>
+                        {t}
                       </span>
                     ))}
                   </div>
-                  {org.phone && (
-                    <a
-                      href={`tel:${org.phone}`}
-                      className="flex items-center gap-1.5 text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors"
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-                      </svg>
-                      {org.phone}
+                  {o.phone && (
+                    <a href={`tel:${o.phone}`} className="label-sm hover:opacity-70 transition-opacity" style={{ color: "var(--sage)" }}>
+                      ☏ {o.phone}
                     </a>
                   )}
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/5 px-8 py-4 flex items-center justify-between text-white/20 text-xs font-mono">
-        <span>DeepShield · Portfolio Project</span>
-        <span>Information current as of 2024 · Not legal advice</span>
-      </footer>
-    </main>
+        {/* ── Footer ── */}
+        <footer className="border-t px-8 md:px-16 py-5 flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
+          <span className="label-sm">DeepShield · Portfolio Project</span>
+          <span className="label-sm">Information current as of 2024 · Not legal advice</span>
+        </footer>
+      </div>
+    </LocomotiveWrapper>
   );
 }

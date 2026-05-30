@@ -1,1 +1,20 @@
-{}
+{
+  "app\\page.tsx -> ../components/LocomotiveWrapper": {
+    "id": "app\\page.tsx -> ../components/LocomotiveWrapper",
+    "files": [
+      "static/chunks/_app-pages-browser_components_LocomotiveWrapper_tsx.js"
+    ]
+  },
+  "app\\resources\\page.tsx -> ../../components/LocomotiveWrapper": {
+    "id": "app\\resources\\page.tsx -> ../../components/LocomotiveWrapper",
+    "files": [
+      "static/chunks/_app-pages-browser_components_LocomotiveWrapper_tsx.js"
+    ]
+  },
+  "components\\LocomotiveWrapper.tsx -> locomotive-scroll": {
+    "id": "components\\LocomotiveWrapper.tsx -> locomotive-scroll",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_locomotive-scroll_dist_locomotive-scroll_esm_js.js"
+    ]
+  }
+}
