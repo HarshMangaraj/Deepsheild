@@ -4,13 +4,12 @@ import torch.nn.functional as F
 from torchvision import transforms
 from PIL import Image
 from transformers import AutoModelForImageClassification
-from huggingface_hub import snapshot_download
+import os
 
-MODEL_ID = "dima806/deepfake_vs_real_image_detection"
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "model_cache")
 
 print("Loading model...")
-local_dir = snapshot_download(repo_id=MODEL_ID, ignore_patterns=["*.msgpack", "*.h5"])
-model = AutoModelForImageClassification.from_pretrained(local_dir, local_files_only=True)
+model = AutoModelForImageClassification.from_pretrained(MODEL_DIR, local_files_only=True)
 model.eval()
 print(f"Labels: {model.config.id2label}")
 
