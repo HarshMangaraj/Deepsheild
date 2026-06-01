@@ -22,3 +22,9 @@ Pillow>=10.3.0
 # Utilities
 python-dotenv==1.0.1
 numpy>=1.26.0
+
+# Video processing
+opencv-python-headless>=4.9.0  # headless = no GUI, perfect for servers
+
+# Video processing
+opencv-python-headless>=4.9.0  # headless = no GUI dependencies, smaller install
